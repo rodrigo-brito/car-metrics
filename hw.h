@@ -36,11 +36,19 @@ static void hwBegin() {
   touch.setRotation(TFT_ROTATION);
 }
 
-// toque com debounce; devolve true uma vez por toque
-static bool touchTapped() {
-  static uint32_t last = 0;
-  if (!touch.tirqTouched() || !touch.touched()) return false;
-  if (millis() - last < 600) return false;
-  last = millis();
-  return true;
+// Toque: devolve TOUCH_TAP ao soltar após toque curto, TOUCH_LONG uma vez após segurar 2 s.
+enum TouchEvent { TOUCH_NONE, TOUCH_TAP, TOUCH_LONG };
+static TouchEvent touchPoll() {
+  static bool down = false; static uint32_t t0 = 0; static bool longFired = false;
+  bool now = touch.tirqTouched() && touch.touched();
+  if (now && !down) { down = true; t0 = millis(); longFired = false; return TOUCH_NONE; }
+  if (now && down) {
+    if (!longFired && millis() - t0 >= 2000) { longFired = true; return TOUCH_LONG; }
+    return TOUCH_NONE;
+  }
+  if (!now && down) {
+    down = false;
+    if (!longFired && millis() - t0 >= 40 && millis() - t0 < 700) return TOUCH_TAP;
+  }
+  return TOUCH_NONE;
 }

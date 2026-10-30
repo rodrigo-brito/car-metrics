@@ -1,7 +1,7 @@
-# Uso: make build | make upload | make monitor | make flash  (OBD_SOURCE=1 para usar o adaptador)
+# Uso: make build | make upload | make monitor | make flash  (OBD_SOURCE=2 para o adaptador BLE)
 # Placa: ESP32-2432S028 "Cheap Yellow Display" (ILI9341 320x240 + XPT2046)
 FQBN  ?= esp32:esp32:esp32:UploadSpeed=115200,PartitionScheme=huge_app
-OBD_SOURCE ?= 0   # 0 = simulação, 1 = ELM327 bluetooth (make build OBD_SOURCE=1)
+OBD_SOURCE ?= 2   # 0 = simulação, 1 = ELM327 bluetooth clássico, 2 = ELM327 BLE (padrão; make build OBD_SOURCE=0 para simular)
 PORT  ?= $(shell ls /dev/cu.usbserial-* /dev/cu.SLAB_USBtoUART /dev/cu.usbmodem* 2>/dev/null | head -1)
 BAUD  ?= 115200
 

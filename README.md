@@ -2,17 +2,37 @@
 
 Computador de bordo rodando num ESP32-2432S028 ("Cheap Yellow Display", tela
 ILI9341 320x240 com touch). Lê os dados do carro por um adaptador OBD2 ELM327
-(Konnwei) via Bluetooth e mostra em dark mode:
+(Konnwei KW902) via **Bluetooth Low Energy** e mostra em dark mode, em três páginas
+(toque curto na tela alterna):
 
-- **Velocímetro** com arco de rpm em gradiente (ciano → verde → laranja → vermelho).
-- **Cards**: consumo instantâneo (km/l), temperatura do motor, nível do tanque,
-  tensão da bateria e média da viagem. A cor do card muda conforme a faixa.
-- **Rodapé da viagem**: distância, combustível gasto, L/h e velocidade máxima.
-- **Barra de status**: fonte de dados, estado da conexão e tempo de viagem.
-- **Toque na tela** alterna para a página de diagnóstico (protocolo, erro,
-  MAF, carga, borboleta, admissão, MAP, heap).
-- **LED RGB**: verde = conectado ao carro · azul = simulação · amarelo piscando =
-  conectando · vermelho piscando = erro.
+**Dirigir**, a página principal:
+- Velocímetro com arco de rpm em gradiente (ciano → verde → laranja → vermelho).
+- Cards: consumo instantâneo (km/l em movimento, l/h parado), média da viagem,
+  temperatura do motor e tensão da bateria, com cor conforme a faixa; carga e borboleta
+  em barras.
+- Rodapé da viagem: distância, combustível gasto, l/h e velocidade máxima.
+- Barra de status com fonte, estado, alerta **INJECAO** quando a luz de falha está acesa,
+  e tempo de viagem.
+
+**Motor**, para ver o que a ECU está fazendo:
+- Carga e borboleta em barras; MAP, temperatura de admissão, avanço de ignição e
+  estado da malha (aberta/fechada).
+- Correções de combustível de curto e longo prazo em barras centradas em zero. Num flex,
+  o trim longo andando para o positivo depois de abastecer indica etanol no tanque.
+- Sondas lambda 1 e 2 com mini gráfico da sonda 1 oscilando.
+
+**Diagnóstico**, um scanner básico:
+- Luz de injeção, quantidade de falhas, distância rodada com a luz acesa e os códigos
+  lidos pelo modo 03 (ex.: `P0171`).
+- **Segurar 2 s** arma o apagamento das falhas (modo 04); um toque em até 5 s confirma.
+- VIN, norma OBD, protocolo, sinal BLE, erro e heap.
+
+**Alertas em tela cheia** por 4 s, em qualquer página, uma vez por ocorrência: motor acima
+de 105 °C, bateria abaixo de 12 V com motor ligado, luz de injeção acendendo. Um toque
+dispensa o alerta. Limites em `config.h`.
+
+**LED RGB**: verde = conectado · azul = simulação · amarelo piscando = conectando ou
+esperando a ECU · vermelho piscando = erro · laranja/verde alternando = luz de injeção.
 
 Sem o carro, roda em **modo simulação** com um ciclo urbano/rodoviário.
 
@@ -24,7 +44,14 @@ Sem o carro, roda em **modo simulação** com um ciclo urbano/rodoviário.
 | `config.h`          | fonte (mock/BT), nome e PIN do adaptador, combustível, timings |
 | `obd_data.h`        | `VehicleData`, `TripData`, interface `ObdSource`, derivação de consumo |
 | `obd_mock.h`        | simulação de condução                                       |
-| `obd_elm.h`         | ELM327 via Bluetooth clássico (SPP): init, PIDs, parse       |
+| `obd_elm.h`         | protocolo ELM327 (init, PIDs suportados, parse), sem transporte |
+| `obd_ble.h`         | transporte BLE com NimBLE (serviço FFF0) — **o que o KONNWEI usa** |
+| `obd_bt.h`          | transporte Bluetooth clássico (SPP), para adaptadores com PIN |
+| `tools/ble_probe.py`| valida um adaptador BLE a partir do Mac (bleak)             |
+| `tools/shot.py`     | captura a tela da placa pelo serial e salva PNG             |
+
+Comandos pelo monitor serial, úteis para testar sem tocar na tela: `P` = toque curto
+(próxima página), `L` = toque longo, `S` = despeja a tela para o `tools/shot.py`.
 | `ui.h`              | desenho da interface (sprites, gauge, cards, páginas)       |
 | `hw.h`              | pinos da placa, touch, LED RGB, backlight                   |
 | `secrets.h`         | nome/PIN/MAC do adaptador (não versionado)                  |
@@ -32,30 +59,39 @@ Sem o carro, roda em **modo simulação** com um ciclo urbano/rodoviário.
 
 ## Requisitos
 
-- `arduino-cli` com o core `esp32:esp32` 3.x e as libs `TFT_eSPI`, `XPT2046_Touchscreen`
-  (`arduino-cli lib install TFT_eSPI XPT2046_Touchscreen`).
+- `arduino-cli` com o core `esp32:esp32` 3.x e as libs `TFT_eSPI`, `XPT2046_Touchscreen`,
+  `NimBLE-Arduino` (`arduino-cli lib install TFT_eSPI XPT2046_Touchscreen NimBLE-Arduino`).
 - Placa ESP32-2432S028 (CH340, aparece como `/dev/cu.usbserial-XXXX`).
 
 ## Comandos
 
 | comando                      | faz                                          |
 |------------------------------|----------------------------------------------|
-| `make flash`                 | compila em modo simulação, grava e abre o serial |
-| `make flash OBD_SOURCE=1`    | idem, conectando no adaptador Bluetooth       |
+| `make flash`                 | compila com o padrão de `config.h` (hoje: BLE), grava e abre o serial |
+| `make flash OBD_SOURCE=0`    | modo simulação, para mexer na interface na bancada |
+| `make flash OBD_SOURCE=1`    | adaptador por Bluetooth clássico (SPP)        |
+| `make flash OBD_SOURCE=2`    | adaptador por BLE (KONNWEI)                   |
 | `make build` / `make upload` | só compila / compila e grava                 |
 | `make monitor`               | monitor serial 115200 (Ctrl+C sai)           |
 
 ## Conectando no adaptador (Konnwei)
 
-### Antes de ir ao carro
+### Como o KONNWEI se conecta (descoberto na prática)
 
-- **Modelo do adaptador.** KW902 e similares usam Bluetooth clássico (SPP) e funcionam
-  com este firmware. KW903 e modelos anunciados "para iPhone" usam BLE, que precisa
-  de outra fonte de dados (ver nota abaixo).
-- **Firmware em modo carro.** Grave com `make flash OBD_SOURCE=1`. A placa já sobe
-  procurando o adaptador; se não achar, varre o Bluetooth e cai na simulação.
-- **Notebook no primeiro teste.** O monitor serial mostra a conversa com o adaptador
-  e é a única forma de ver por que algo não funcionou.
+O KW902 testado é **dual-mode**: anuncia um nome `KONNWEI` por Bluetooth clássico e
+outro por BLE, com o mesmo MAC. A parte clássica **não aceita pareamento de ninguém**
+(ESP32 e Mac falham com "authentication failed" em qualquer combinação de PIN, SSP,
+papel mestre/escravo e versão do core). A parte BLE funciona direto, sem pareamento:
+serviço `FFF0`, notificações em `FFF1`, escrita em `FFF2`. O firmware usa BLE por padrão.
+
+Para validar um adaptador novo antes de mexer no firmware, rode do Mac:
+
+```
+pip install bleak
+python3 tools/ble_probe.py KONNWEI
+```
+
+Ele lista as características e executa `ATZ … 0100` e os PIDs básicos.
 
 ### No carro
 
@@ -80,64 +116,62 @@ Sem o carro, roda em **modo simulação** com um ciclo urbano/rodoviário.
 
 ### Se não conectar
 
-Depois de uma tentativa por nome (~30 s), o ESP32 varre os dispositivos Bluetooth ao
-redor e lista nome, MAC e sinal no serial e na página de diagnóstico (toque na tela):
+O ESP32 faz até três varreduras BLE de 6 s e lista nome, MAC, sinal e se o dispositivo
+anuncia `FFF0`, no serial e na página de diagnóstico (toque na tela). Se o adaptador
+não aparecer, ele está sem energia ou é só clássico; neste caso use `OBD_SOURCE=1`.
 
-```
-[obd] varrendo dispositivos bluetooth...
-[obd]   OBDII 00:1D:A5:68:98:8B -62dBm
-```
-
-Use isso para preencher `secrets.h` e regrave:
-
-```c
-#define OBD_BT_NAME "OBDII"               // nome que apareceu na varredura
-#define OBD_BT_PIN  "1234"                // ou "0000"
-#define OBD_BT_MAC  "00:1D:A5:68:98:8B"   // conexão direta: leva segundos em vez de 30 s
-```
-
-| sintoma                                   | causa provável                                       |
-|-------------------------------------------|------------------------------------------------------|
-| varredura não mostra o adaptador          | adaptador sem energia (ignição desligada) ou é BLE   |
-| aparece na varredura mas não conecta      | PIN errado ou celular ainda conectado nele           |
-| conecta, `ATZ` responde, `0100` sem `41`  | ECU dormindo: ligue a ignição e reinicie o ESP32     |
-| `0100` ok mas `NO DATA` em algum PID      | o carro não expõe aquele PID; o valor fica `--`      |
-| consumo sempre `--`                       | carro sem MAF; cálculo por MAP/rpm ainda não existe  |
+| sintoma                                     | causa provável                                       |
+|---------------------------------------------|------------------------------------------------------|
+| varredura não mostra o adaptador            | adaptador sem energia (ignição desligada) ou só clássico |
+| conecta, `ATZ` responde, `0100` dá `UNABLE TO CONNECT` | ECU dormindo: o firmware fica em "sem ECU" e tenta a cada 5 s; ligue a ignição |
+| `7F 01 12` em algum PID                     | o carro não expõe aquele PID; o valor fica `--`      |
+| consumo `--` com motor ligado               | sem MAF e sem MAP; conferir a lista de PIDs no serial |
+| sinal abaixo de -85 dBm                     | ESP32 longe do conector OBD2; aproxime ou mude a posição |
 
 ### Depois de validar
 
-Troque o padrão em `config.h` para que a placa ligue direto em modo carro, sem o
-notebook:
-
-```c
-#define OBD_SOURCE 1
-```
-
-Com `OBD_FALLBACK_TO_MOCK 1` ela continua caindo na simulação se o adaptador não
-estiver presente, o que é útil na bancada. No carro, zere para não mostrar dados
-falsos quando a conexão cair.
-
-> **BLE**: modelos "iOS"/BLE (ex.: KW903) não usam SPP. A interface `ObdSource` permite
-> adicionar uma fonte com NimBLE sem mexer na interface gráfica.
+`OBD_SOURCE` já está em `2` (BLE) em `config.h`. Com `OBD_FALLBACK_TO_MOCK 1` a placa
+cai na simulação se o adaptador não for encontrado, útil na bancada. No carro, zere
+para não mostrar dados falsos. Se o adaptador estiver presente mas a ignição desligada,
+o painel fica em "sem ECU" com LED amarelo e começa a ler sozinho quando a ECU acordar.
 
 ## PIDs usados
 
-| PID  | dado                 | ritmo  |
-|------|----------------------|--------|
-| 010C | rpm                  | rápido |
-| 010D | velocidade           | rápido |
-| 0110 | MAF (fluxo de ar)    | rápido |
-| 0105 | temp. arrefecimento  | lento  |
-| 012F | nível do tanque      | lento  |
-| ATRV | tensão da bateria    | lento  |
-| 010F | temp. admissão       | lento  |
-| 0104 | carga do motor       | lento  |
-| 0111 | borboleta            | lento  |
-| 010B | pressão do coletor   | lento  |
+| PID  | dado                                | ritmo  | onde aparece            |
+|------|-------------------------------------|--------|-------------------------|
+| 010C | rpm                                 | rápido | dirigir                 |
+| 010D | velocidade                          | rápido | dirigir                 |
+| 0110 | MAF (fluxo de ar), se existir       | rápido | consumo                 |
+| 010B | pressão do coletor (MAP)            | rápido | consumo, motor          |
+| 0105 | temp. arrefecimento                 | lento  | dirigir, alerta         |
+| ATRV | tensão da bateria (adaptador)       | lento  | dirigir, alerta         |
+| 0101 | luz de injeção e nº de falhas       | lento  | status, diagnóstico     |
+| 010F | temp. admissão                      | lento  | motor, consumo          |
+| 0104 | carga do motor                      | lento  | dirigir, motor          |
+| 0111 | borboleta                           | lento  | dirigir, motor          |
+| 0106 | trim de combustível curto prazo     | lento  | motor                   |
+| 0107 | trim de combustível longo prazo     | lento  | motor                   |
+| 010E | avanço de ignição                   | lento  | motor                   |
+| 0114 | sonda lambda 1                      | lento  | motor                   |
+| 0115 | sonda lambda 2                      | lento  | motor                   |
+| 0103 | estado do sistema de combustível    | lento  | motor                   |
+| 012F | nível do tanque, se existir         | lento  | (TR4 não tem)           |
+| 0121 | distância com a luz acesa           | lento  | diagnóstico             |
+| 011C | norma OBD                           | 1 vez  | diagnóstico             |
+| 0902 | VIN                                 | 1 vez  | diagnóstico             |
+| 03   | códigos de falha                    | ao abrir diagnóstico | diagnóstico |
+| 04   | apagar falhas                       | sob confirmação | diagnóstico  |
 
-O consumo vem do MAF: `L/h = MAF(g/s) × 3600 ÷ (AFR × densidade)`. AFR e densidade
-ficam em `config.h` (padrão: gasolina C brasileira). Carros sem MAF ficam com consumo
-`--` nesta versão; o cálculo por MAP/rpm (speed-density) é o próximo passo.
+O firmware lê `0100`/`0120`/`0140` na inicialização e só consulta os PIDs que a ECU
+declarou. O carro testado expõe `01 03 04 05 06 07 0B 0C 0D 0E 0F 11 13 14 15 1C 20 21`:
+tem MAP (`0B`) mas **não tem MAF (`10`) nem nível de tanque (`2F`)**.
+
+O consumo vem do fluxo de ar: `L/h = MAF(g/s) × 3600 ÷ (AFR × densidade)`. Sem MAF o
+fluxo é estimado por **speed-density** com MAP, rpm e temperatura de admissão:
+`MAF ≈ rpm/60 ÷ 2 × cilindrada × ρ(MAP, IAT) × VE`. AFR, densidade do combustível,
+cilindrada (`ENGINE_DISPLACEMENT_L`) e eficiência volumétrica (`ENGINE_VE`) ficam em
+`config.h`. Configurado para a **Pajero TR4 2010 2.0 16V flex** (2.0 L). Rodando com etanol,
+troque `FUEL_AFR`/`FUEL_DENSITY` para 9.0 / 790.
 
 ## Notas
 
@@ -150,30 +184,26 @@ ficam em `config.h` (padrão: gasolina C brasileira). Carros sem MAF ficam com c
 
 ## Pendências
 
-Estado em 2026-10-29. O que já foi validado na bancada e o que ainda depende do carro.
+Estado em 2026-10-29, fim do dia. Conexão real com o carro validada.
 
 **Validado**
-- Tela, touch, LED RGB, inversão de cores da placa e modo simulação.
-- Compilação das duas variantes (`OBD_SOURCE=0` e `1`).
-- Caminho de falha do Bluetooth: tentativa por nome, varredura dos dispositivos ao redor
-  e fallback para simulação (~43 s até o fallback).
-- Captura de tela pelo serial (comando `S`) para inspecionar a interface sem a placa à vista.
+- Tela, touch, LED RGB, inversão de cores da placa, modo simulação, captura de tela por serial.
+- Conexão BLE com o KONNWEI, inicialização do ELM327, detecção de protocolo (CAN, `A5`),
+  leitura de PIDs com ignição ligada: temperatura do motor, MAP, IAT, borboleta, tensão.
+- Fallback para simulação quando o adaptador não aparece; espera pela ECU quando a ignição está desligada.
+- Diagnóstico completo do Bluetooth clássico do KONNWEI (não pareia com ninguém); código mantido em `obd_bt.h` para outros adaptadores.
 
-**Pendente, depende do carro**
-- [ ] Primeira conexão real com o KW902 (nome `KONNWEI`, PIN `1234`). Levar o notebook e
-      acompanhar o serial; respostas do ELM327 fora do formato previsto exigem ajuste no parser.
-- [ ] Completar o sexto par do MAC em `secrets.h` (`5C:F0:39:14:5B:??`) para conexão direta,
-      que leva segundos em vez de ~30 s. O MAC completo aparece na varredura do serial.
-- [ ] Conferir quais PIDs o carro responde; os que vierem `NO DATA` ficam como `--`.
-- [ ] Validar o cálculo de consumo pelo MAF contra o computador de bordo original do carro
-      e ajustar `FUEL_AFR`/`FUEL_DENSITY` em `config.h` conforme o combustível usado.
-- [ ] Depois de validar, trocar `OBD_SOURCE` para `1` em `config.h` e avaliar desligar
-      `OBD_FALLBACK_TO_MOCK` para não mostrar dados simulados no carro.
+**Pendente, depende de rodar com o carro**
+- [ ] Ver o painel com motor ligado e em movimento: rpm, velocidade, consumo, trims e sondas.
+- [ ] Validar com o carro a leitura do VIN (resposta multi-quadro) e dos códigos de falha (modo 03).
+- [ ] Comparar a média calculada com o consumo real abastecido e ajustar `ENGINE_VE` (cilindrada já em 2.0 L).
+- [ ] Conferir a leitura de tensão (`ATRV`): o adaptador deu 28,3 V num teste e 11,8 V em outro; pode precisar de `ATCV`.
+- [ ] Posicionar o ESP32 no carro: sinal BLE ficou entre -61 e -86 dBm na bancada.
+- [ ] Avaliar desligar `OBD_FALLBACK_TO_MOCK` para uso no carro.
 
 **Pendente, melhorias**
-- [ ] Consumo por MAP/rpm/temperatura de admissão (speed-density) para carros sem MAF.
-- [ ] Reconexão automática quando o Bluetooth cair durante a viagem (hoje vai para `erro`).
-- [ ] Fonte BLE com NimBLE para adaptadores como o KW903, usando a mesma interface `ObdSource`.
+- [ ] Reconexão automática quando o BLE cair durante a viagem (hoje vai para `erro`).
 - [ ] Persistir os acumulados da viagem (distância, combustível) entre desligamentos.
-- [ ] Calibração do touch; hoje só detecta toque, sem usar a posição.
-- [ ] Alimentação no carro: definir carregador USB e caixa para a placa.
+- [ ] Calibração do touch; hoje só detecta toque curto/longo, sem usar a posição.
+- [ ] Sensor de temperatura externa (BME280) nos pinos livres; a ECU não expõe o PID 46.
+- [ ] Alimentação no carro: carregador USB e caixa para a placa.

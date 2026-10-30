@@ -50,9 +50,23 @@ public:
 
     d.rpm = rpm; d.speedKmh = _speed; d.coolantC = _coolant; d.intakeC = _intake;
     d.mafGs = maf; d.loadPct = load * 100; d.throttlePct = constrain(load * 100 + 5, 0, 100);
-    d.fuelPct = _fuel; d.batteryV = batt; d.mapKpa = 30 + load * 70;
+    d.fuelPct = NAN; d.batteryV = batt; d.mapKpa = 30 + load * 70;
+    // dados de motor
+    d.timingDeg = 8 + load * 20 + (rpm - 800) / 400.0f;
+    d.stftPct   = 2.0f * sin(now / 1500.0f) + random(-10, 10) / 10.0f;
+    d.ltftPct   = 3.5f + random(-3, 3) / 10.0f;
+    d.o2s1V     = 0.45f + 0.4f * sin(now / 350.0f);
+    d.o2s2V     = 0.62f + random(-2, 2) / 100.0f;
+    d.fuelSystem = _coolant < 60 ? 1 : (accel > 1.8f ? 4 : 2);
+    d.obdStd = "OBD-II (CARB)"; d.vin = "9BRTR4MOCK0000001";
+    // após 45 s acende a luz de injeção para exercitar alerta e página de diagnóstico
+    bool mil = now > 45000 && !_milCleared;
+    d.milOn = mil; d.dtcCount = mil ? 1 : 0; d.distMilKm = mil ? (now - 45000) / 1000.0f * 0.02f : 0;
     d.updatedAt = now;
   }
+  void requestDtcs(VehicleData& d) override { d.nDtcs = d.milOn ? 1 : 0; d.dtcs[0] = "P0171"; d.dtcsReadAt = millis(); }
+  bool clearDtcs(VehicleData& d) override { d.nDtcs = 0; d.milOn = false; d.dtcCount = 0; _milCleared = true; return true; }
+  int signalDbm() const override { return -55; }
 
 private:
   void pickTarget() {
@@ -66,4 +80,5 @@ private:
   ObdState _state = ObdState::Idle;
   uint32_t _last = 0, _nextChange = 0;
   float _speed = 0, _target = 0, _coolant = 32, _intake = 28, _fuel = 62;
+  bool _milCleared = false;
 };
