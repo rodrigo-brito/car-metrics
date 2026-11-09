@@ -28,35 +28,41 @@ public:
       if (now - _lastEcuTry >= 5000) { _lastEcuTry = now; if (initEcu()) _state = ObdState::Connected; }
       return;
     }
-    if (!_staticDone) { _staticDone = true; readStatic(d); }
-
-    if (now - _lastFast >= OBD_FAST_MS) {
-      _lastFast = now;
-      if (has(0x0C)) readPid(0x0C, d.rpm,      [](uint8_t* b, int n){ return n >= 2 ? (b[0] * 256 + b[1]) / 4.0f : NAN; });
-      if (has(0x0D)) readPid(0x0D, d.speedKmh, [](uint8_t* b, int n){ return n >= 1 ? (float)b[0] : NAN; });
-      if (has(0x10)) readPid(0x10, d.mafGs,    [](uint8_t* b, int n){ return n >= 2 ? (b[0] * 256 + b[1]) / 100.0f : NAN; });
-      else if (has(0x0B)) readPid(0x0B, d.mapKpa, [](uint8_t* b, int n){ return n >= 1 ? (float)b[0] : NAN; });
-      d.updatedAt = now;
+    // Um comando ELM327 por chamada: cada um leva de 100 a 300 ms esperando o adaptador,
+    // e o loop principal precisa voltar a tratar tela e toque entre eles.
+    if (!_staticDone) { _staticDone = true; readStatic(d); return; }
+    if (now - _lastSlow >= OBD_SLOW_MS) { _lastSlow = now; readSlow(d); return; }
+    // rápidos em rodízio (rpm, velocidade, MAF/MAP); nova rodada no mínimo a cada OBD_FAST_MS
+    if (_fastIdx == 0) { if (now - _lastFast < OBD_FAST_MS) return; _lastFast = now; }
+    switch (_fastIdx) {
+      case 0: if (has(0x0C)) readPid(0x0C, d.rpm,      [](uint8_t* b, int n){ return n >= 2 ? (b[0] * 256 + b[1]) / 4.0f : NAN; }); break;
+      case 1: if (has(0x0D)) readPid(0x0D, d.speedKmh, [](uint8_t* b, int n){ return n >= 1 ? (float)b[0] : NAN; }); break;
+      case 2: if (has(0x10)) readPid(0x10, d.mafGs,    [](uint8_t* b, int n){ return n >= 2 ? (b[0] * 256 + b[1]) / 100.0f : NAN; });
+              else if (has(0x0B)) readPid(0x0B, d.mapKpa, [](uint8_t* b, int n){ return n >= 1 ? (float)b[0] : NAN; });
+              break;
     }
-    if (now - _lastSlow >= OBD_SLOW_MS) {
-      _lastSlow = now;
-      switch (_slowIdx++ % 13) {
-        case 0:  if (has(0x05)) readPid(0x05, d.coolantC,    [](uint8_t* b, int n){ return n >= 1 ? b[0] - 40.0f : NAN; }); break;
-        case 1:  readVoltage(d.batteryV); break;
-        case 2:  if (has(0x01)) readMil(d); break;
-        case 3:  if (has(0x0F)) readPid(0x0F, d.intakeC,     [](uint8_t* b, int n){ return n >= 1 ? b[0] - 40.0f : NAN; }); break;
-        case 4:  if (has(0x04)) readPid(0x04, d.loadPct,     [](uint8_t* b, int n){ return n >= 1 ? b[0] * 100.0f / 255 : NAN; }); break;
-        case 5:  if (has(0x11)) readPid(0x11, d.throttlePct, [](uint8_t* b, int n){ return n >= 1 ? b[0] * 100.0f / 255 : NAN; }); break;
-        case 6:  if (has(0x06)) readPid(0x06, d.stftPct,     [](uint8_t* b, int n){ return n >= 1 ? (b[0] - 128) * 100.0f / 128 : NAN; }); break;
-        case 7:  if (has(0x07)) readPid(0x07, d.ltftPct,     [](uint8_t* b, int n){ return n >= 1 ? (b[0] - 128) * 100.0f / 128 : NAN; }); break;
-        case 8:  if (has(0x0E)) readPid(0x0E, d.timingDeg,   [](uint8_t* b, int n){ return n >= 1 ? b[0] / 2.0f - 64 : NAN; }); break;
-        case 9:  if (has(0x14)) readPid(0x14, d.o2s1V,       [](uint8_t* b, int n){ return n >= 1 ? b[0] / 200.0f : NAN; }); break;
-        case 10: if (has(0x15)) readPid(0x15, d.o2s2V,       [](uint8_t* b, int n){ return n >= 1 ? b[0] / 200.0f : NAN; }); break;
-        case 11: if (has(0x03)) { float v = NAN; readPid(0x03, v, [](uint8_t* b, int n){ return n >= 1 ? (float)b[0] : NAN; }); d.fuelSystem = isnan(v) ? -1 : (int)v; } break;
-        case 12: if (has(0x2F)) readPid(0x2F, d.fuelPct,     [](uint8_t* b, int n){ return n >= 1 ? b[0] * 100.0f / 255 : NAN; });
-                 else if (has(0x21)) readPid(0x21, d.distMilKm, [](uint8_t* b, int n){ return n >= 2 ? (float)(b[0] * 256 + b[1]) : NAN; });
-                 break;
-      }
+    _fastIdx = (_fastIdx + 1) % 3;
+    d.updatedAt = now;
+  }
+
+  // demais PIDs, um por segundo, em rodízio de 13 posições
+  void readSlow(VehicleData& d) {
+    switch (_slowIdx++ % 13) {
+      case 0:  if (has(0x05)) readPid(0x05, d.coolantC,    [](uint8_t* b, int n){ return n >= 1 ? b[0] - 40.0f : NAN; }); break;
+      case 1:  readVoltage(d.batteryV); break;
+      case 2:  if (has(0x01)) readMil(d); break;
+      case 3:  if (has(0x0F)) readPid(0x0F, d.intakeC,     [](uint8_t* b, int n){ return n >= 1 ? b[0] - 40.0f : NAN; }); break;
+      case 4:  if (has(0x04)) readPid(0x04, d.loadPct,     [](uint8_t* b, int n){ return n >= 1 ? b[0] * 100.0f / 255 : NAN; }); break;
+      case 5:  if (has(0x11)) readPid(0x11, d.throttlePct, [](uint8_t* b, int n){ return n >= 1 ? b[0] * 100.0f / 255 : NAN; }); break;
+      case 6:  if (has(0x06)) readPid(0x06, d.stftPct,     [](uint8_t* b, int n){ return n >= 1 ? (b[0] - 128) * 100.0f / 128 : NAN; }); break;
+      case 7:  if (has(0x07)) readPid(0x07, d.ltftPct,     [](uint8_t* b, int n){ return n >= 1 ? (b[0] - 128) * 100.0f / 128 : NAN; }); break;
+      case 8:  if (has(0x0E)) readPid(0x0E, d.timingDeg,   [](uint8_t* b, int n){ return n >= 1 ? b[0] / 2.0f - 64 : NAN; }); break;
+      case 9:  if (has(0x14)) readPid(0x14, d.o2s1V,       [](uint8_t* b, int n){ return n >= 1 ? b[0] / 200.0f : NAN; }); break;
+      case 10: if (has(0x15)) readPid(0x15, d.o2s2V,       [](uint8_t* b, int n){ return n >= 1 ? b[0] / 200.0f : NAN; }); break;
+      case 11: if (has(0x03)) { float v = NAN; readPid(0x03, v, [](uint8_t* b, int n){ return n >= 1 ? (float)b[0] : NAN; }); d.fuelSystem = isnan(v) ? -1 : (int)v; } break;
+      case 12: if (has(0x2F)) readPid(0x2F, d.fuelPct,     [](uint8_t* b, int n){ return n >= 1 ? b[0] * 100.0f / 255 : NAN; });
+               else if (has(0x21)) readPid(0x21, d.distMilKm, [](uint8_t* b, int n){ return n >= 2 ? (float)(b[0] * 256 + b[1]) : NAN; });
+               break;
     }
   }
 
@@ -105,7 +111,7 @@ protected:
   String _err, _protocol;
   uint32_t _supported[3] = { 0, 0, 0 };
   uint32_t _lastFast = 0, _lastSlow = 0, _lastEcuTry = 0;
-  int _slowIdx = 0;
+  int _slowIdx = 0, _fastIdx = 0;
   bool _staticDone = false;
 
   // envia comando e lê até o prompt '>'

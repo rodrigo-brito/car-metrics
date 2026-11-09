@@ -25,6 +25,7 @@ static void ledRGB(bool r, bool g, bool b) {
   digitalWrite(LED_R, r ? LOW : HIGH); digitalWrite(LED_G, g ? LOW : HIGH); digitalWrite(LED_B, b ? LOW : HIGH);
 }
 
+static void touchBegin();
 static void hwBegin() {
   pinMode(LED_R, OUTPUT); pinMode(LED_G, OUTPUT); pinMode(LED_B, OUTPUT); ledRGB(false, false, false);
   pinMode(BL_PIN, OUTPUT); digitalWrite(BL_PIN, HIGH);
@@ -34,11 +35,16 @@ static void hwBegin() {
   touchSpi.begin(T_CLK, T_MISO, T_MOSI, T_CS);
   touch.begin(touchSpi);
   touch.setRotation(TFT_ROTATION);
+  touchBegin();
 }
 
-// Toque: devolve TOUCH_TAP ao soltar após toque curto, TOUCH_LONG uma vez após segurar 2 s.
+// Toque: TOUCH_TAP ao soltar após toque curto, TOUCH_LONG uma vez após segurar 2 s.
+// A leitura roda numa tarefa própria a cada 10 ms: no modo real o loop principal fica
+// preso centenas de ms (até segundos) esperando o adaptador responder, e o toque se perdia.
 enum TouchEvent { TOUCH_NONE, TOUCH_TAP, TOUCH_LONG };
-static TouchEvent touchPoll() {
+static QueueHandle_t touchQueue = nullptr;
+
+static TouchEvent touchDetect() {
   static bool down = false; static uint32_t t0 = 0; static bool longFired = false;
   bool now = touch.tirqTouched() && touch.touched();
   if (now && !down) { down = true; t0 = millis(); longFired = false; return TOUCH_NONE; }
@@ -50,5 +56,25 @@ static TouchEvent touchPoll() {
     down = false;
     if (!longFired && millis() - t0 >= 40 && millis() - t0 < 700) return TOUCH_TAP;
   }
+  return TOUCH_NONE;
+}
+
+static void touchTask(void*) {
+  for (;;) {
+    TouchEvent ev = touchDetect();
+    if (ev != TOUCH_NONE) xQueueSend(touchQueue, &ev, 0);   // fila cheia: descarta
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+}
+
+static void touchBegin() {
+  touchQueue = xQueueCreate(2, sizeof(TouchEvent));
+  xTaskCreatePinnedToCore(touchTask, "touch", 3072, nullptr, 2, nullptr, 1);  // mesmo core do loop, prioridade acima
+}
+
+// Consumido pelo loop: devolve o próximo evento pendente ou TOUCH_NONE.
+static TouchEvent touchPoll() {
+  TouchEvent ev;
+  if (touchQueue && xQueueReceive(touchQueue, &ev, 0) == pdTRUE) return ev;
   return TOUCH_NONE;
 }
