@@ -1,0 +1,27 @@
+name: painel_tr4
+description: Computador de bordo da Pajero TR4 no celular, lendo o adaptador ELM327 (KONNWEI) por BLE.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # transporte BLE (serviço FFF0 do KONNWEI)
+  flutter_blue_plus: ^1.33.0
+  # permissões em tempo de execução (BLUETOOTH_SCAN/CONNECT no Android 12+, localização no 11-)
+  permission_handler: ^11.3.1
+  # versão do Android, para saber quais permissões pedir
+  device_info_plus: ^10.1.2
+  shared_preferences: ^2.5.6
+  sensors_plus: ^7.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
