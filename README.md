@@ -36,6 +36,15 @@ esperando a ECU · vermelho piscando = erro · laranja/verde alternando = luz de
 
 Sem o carro, roda em **modo simulação** com um ciclo urbano/rodoviário.
 
+## App Android (`app/`)
+
+A pasta [`app/`](app/README.md) tem um aplicativo **Flutter** que mostra as mesmas três páginas e
+métricas deste painel no celular, conectando **direto no KONNWEI por BLE** (sem passar pelo
+ESP32). Como o adaptador aceita um cliente BLE por vez, o app substitui o painel enquanto
+estiver em uso. O protocolo ELM327, os PIDs e a derivação de consumo são um porte de
+`obd_elm.h` / `obd_data.h`; sem o carro, roda em simulação (porte de `obd_mock.h`).
+Compilação, instalação e uso estão em [`app/README.md`](app/README.md).
+
 ## Arquivos
 
 | arquivo             | conteúdo                                                    |

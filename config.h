@@ -32,7 +32,7 @@
 
 // Intervalos (ms)
 #define UI_REFRESH_MS    100   // redesenho da tela
-#define OBD_FAST_MS      150   // rpm, velocidade, MAF
+#define OBD_FAST_MS      150   // ciclo mínimo da rodada rpm, velocidade, MAF (um PID por volta do loop)
 #define OBD_SLOW_MS     1000   // demais PIDs, em rodízio de 13 posições
 
 // Alertas em tela cheia (segundos de exibição e limites)
