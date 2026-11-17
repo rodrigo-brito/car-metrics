@@ -6,7 +6,7 @@ import 'ui/theme.dart';
 
 void main() => runApp(const PainelApp());
 
-/// Computador de bordo da Pajero TR4 no celular: mesmas métricas e páginas do painel ESP32,
+/// Painel OBD2: computador de bordo no celular: mesmas métricas e páginas do painel ESP32,
 /// lendo o adaptador KONNWEI (ELM327 por BLE) direto, ou um mock para desenvolver sem o carro.
 class PainelApp extends StatefulWidget {
   const PainelApp({super.key, this.autoScan = true});
@@ -30,7 +30,7 @@ class _PainelAppState extends State<PainelApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Painel TR4',
+      title: 'Painel OBD2',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       home: ConnectPage(controller: _controller, autoScan: widget.autoScan),
