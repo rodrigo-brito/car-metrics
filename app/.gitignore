@@ -20,3 +20,8 @@ android/.kotlin/
 android/gradlew
 android/gradlew.bat
 android/gradle/wrapper/gradle-wrapper.jar
+
+# chave de upload da Play
+*.jks
+*.keystore
+key.properties

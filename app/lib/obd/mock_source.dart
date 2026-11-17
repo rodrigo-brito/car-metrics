@@ -117,7 +117,7 @@ class MockSource extends ObdSource {
     d.o2s2V = 0.62 + _rand(-2, 2) / 100.0;
     d.fuelSystem = _coolant < 60 ? 1 : (accel > 1.8 ? 4 : 2);
     d.obdStd = 'OBD-II (CARB)';
-    d.vin = '9BRTR4MOCK0000001';
+    d.vin = '9BROBD2MOCK000001';
     // após 45 s acende a luz de injeção para exercitar alerta e página de diagnóstico
     final mil = now > 45000 && !_milCleared;
     d.milOn = mil;

@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:1024px;height:500px;overflow:hidden;background:#000;font-family:-apple-system,"Helvetica Neue",Roboto,sans-serif;color:#f7f3f7}
+.bg{position:absolute;inset:0;background:radial-gradient(600px 420px at 78% 60%,rgba(0,255,255,.10),transparent 70%),#000}
+.ring{position:absolute;left:640px;top:70px;width:360px;height:360px;border-radius:50%;
+ background:conic-gradient(from 215deg,#00ffff 0deg,#00ff7a 75deg,#00ff42 145deg,#8fdc1e 185deg,#ffa500 235deg,#ff0000 290deg,#1c1e1c 290deg 360deg);
+ -webkit-mask:radial-gradient(circle,transparent 150px,#000 151px)}
+.gauge{position:absolute;left:640px;top:70px;width:360px;height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.spd{font-size:118px;font-weight:800;line-height:1;letter-spacing:-3px}
+.u{font-size:26px;color:#8a888a;margin-top:4px}
+.rpm{font-size:30px;margin-top:14px}
+.txt{position:absolute;left:64px;top:96px;width:560px}
+h1{margin:0;font-size:64px;font-weight:800;color:#00ffff;line-height:1.02;letter-spacing:-1px}
+p{margin:22px 0 0;font-size:27px;line-height:1.35;color:#d9d6d9}
+.chips{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap}
+.chip{border:2px solid #2a2d2a;border-radius:999px;padding:7px 14px;font-size:18px;color:#bdbabd}
+.chip b{color:#00ff42;font-weight:600}
+</style></head><body><div class="bg"></div>
+<div class="txt"><h1>Painel OBD2</h1>
+<p>Computador de bordo no celular, direto do adaptador OBD2 do carro.</p>
+<div class="chips"><span class="chip">velocidade e rpm</span><span class="chip">consumo</span><span class="chip">códigos de falha</span><span class="chip">inclinômetro</span></div></div>
+<div class="ring"></div><div class="gauge"><div class="spd">92</div><div class="u">km/h</div><div class="rpm">2650 rpm</div></div>
+</body></html>
