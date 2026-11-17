@@ -1,4 +1,4 @@
-// Computador de bordo no ESP32-2432S028 (Cheap Yellow Display)
+// Computador de bordo no ESP32-2432S028 (Cheap Yellow Display) ou na Guition JC3248W535 (BOARD)
 // Lê dados do carro por um adaptador OBD2 ELM327 (Konnwei, BLE) e mostra em três páginas:
 // dirigir, motor e diagnóstico. Toque curto troca de página; na página de diagnóstico,
 // segurar 2 s e confirmar apaga as falhas. Sem o carro, roda em simulação (OBD_SOURCE 0).
@@ -48,7 +48,7 @@ void updateLed() {
 
 void showPage(bool full) {
   static bool blink = false; blink = !blink;
-  if (full) tft.fillScreen(UI_BG);
+  if (full) hwClear(UI_BG);
   uiStatusBar(*source, vehicle, trip, page, blink);
   String scan;
 #if OBD_SOURCE >= 1
@@ -59,6 +59,7 @@ void showPage(bool full) {
     case PAGE_ENGINE: uiPageEngine(vehicle); break;
     default:          uiPageDiag(*source, vehicle, armClear, scan); break;
   }
+  hwFlush();
 }
 
 void gotoPage(Page p) {

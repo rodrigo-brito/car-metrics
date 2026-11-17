@@ -1,6 +1,15 @@
 #pragma once
 // ======== Configuração do computador de bordo ========
 
+// Placa: 0 = ESP32-2432S028 "Cheap Yellow Display" (2,8" 320x240)
+//        1 = Guition JC3248W535 (ESP32-S3, 3,5" 480x320, AXS15231B)
+// O Makefile define pela variável BOARD (make flash BOARD=jc3248).
+#define BOARD_CYD    0
+#define BOARD_JC3248 1
+#ifndef BOARD
+#define BOARD BOARD_CYD
+#endif
+
 // Fonte de dados: 0 = simulação (mock), 1 = ELM327 via Bluetooth clássico (SPP), 2 = ELM327 via BLE
 #ifndef OBD_SOURCE
 #define OBD_SOURCE 2
@@ -41,6 +50,8 @@
 #define ALERT_BATTERY_V   12.0f    // com motor ligado
 
 // Tela
+#ifndef TFT_ROTATION
 #define TFT_ROTATION 1         // 1 = paisagem com USB à direita, 3 = USB à esquerda
+#endif
 // Algumas variantes da placa saem com as cores invertidas (fundo branco). 1 corrige.
 #define TFT_INVERT   1

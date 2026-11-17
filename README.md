@@ -62,7 +62,9 @@ Compilação, instalação e uso estão em [`app/README.md`](app/README.md).
 Comandos pelo monitor serial, úteis para testar sem tocar na tela: `P` = toque curto
 (próxima página), `L` = toque longo, `S` = despeja a tela para o `tools/shot.py`.
 | `ui.h`              | desenho da interface (sprites, gauge, cards, páginas)       |
-| `hw.h`              | pinos da placa, touch, LED RGB, backlight                   |
+| `hw.h`              | escolhe a placa e trata o toque (tarefa própria, toque curto/longo) |
+| `hw_cyd.h`          | ESP32-2432S028: ILI9341, touch XPT2046, LED RGB, backlight  |
+| `hw_jc3248.h`       | JC3248W535: AXS15231B por QSPI (Arduino_GFX), touch I2C, backlight |
 | `secrets.h`         | nome/PIN/MAC do adaptador (não versionado)                  |
 | `Makefile`          | build/upload/monitor e flags de pinos do TFT_eSPI           |
 
@@ -70,7 +72,17 @@ Comandos pelo monitor serial, úteis para testar sem tocar na tela: `P` = toque 
 
 - `arduino-cli` com o core `esp32:esp32` 3.x e as libs `TFT_eSPI`, `XPT2046_Touchscreen`,
   `NimBLE-Arduino` (`arduino-cli lib install TFT_eSPI XPT2046_Touchscreen NimBLE-Arduino`).
-- Placa ESP32-2432S028 (CH340, aparece como `/dev/cu.usbserial-XXXX`).
+- Uma das placas:
+  - ESP32-2432S028 "Cheap Yellow Display", 2,8" 320x240 (CH340, aparece como
+    `/dev/cu.usbserial-XXXX`). É o padrão (`BOARD=cyd`).
+  - Guition JC3248W535, ESP32-S3 com 3,5" 480x320 (USB nativo, aparece como
+    `/dev/cu.usbmodemXXXX`). Use `BOARD=jc3248`. Precisa também da lib
+    `GFX Library for Arduino` (`arduino-cli lib install "GFX Library for Arduino"`).
+    A interface desenha num quadro de 480x320 na PSRAM, que é girado e enviado ao
+    painel. Se a imagem sair de cabeça para baixo, compile com `TFT_ROTATION=3`
+    (troque em `config.h`). O backup do firmware de fábrica fica em `backup/`, fora
+    do git; para voltar ao original:
+    `esptool --port /dev/cu.usbmodemXXXX write-flash 0 backup/jc3248w535-fabrica.bin`.
 
 ## Comandos
 
@@ -80,6 +92,7 @@ Comandos pelo monitor serial, úteis para testar sem tocar na tela: `P` = toque 
 | `make flash OBD_SOURCE=0`    | modo simulação, para mexer na interface na bancada |
 | `make flash OBD_SOURCE=1`    | adaptador por Bluetooth clássico (SPP)        |
 | `make flash OBD_SOURCE=2`    | adaptador por BLE (KONNWEI)                   |
+| `make flash BOARD=jc3248`    | mesma coisa na JC3248W535 (combina com `OBD_SOURCE`) |
 | `make build` / `make upload` | só compila / compila e grava                 |
 | `make monitor`               | monitor serial 115200 (Ctrl+C sai)           |
 
