@@ -19,7 +19,7 @@ void main() {
     expect(d.coolantC, inInclusiveRange(32, 91));
     expect(d.batteryV, inInclusiveRange(13.5, 14.5));
     expect(d.mafGs, greaterThan(0));
-    expect(d.vin, '9BRTR4MOCK0000001');
+    expect(d.vin, '9BROBD2MOCK000001');
     expect(d.milOn, isFalse);
 
     while (now < 50000) {

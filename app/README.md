@@ -162,6 +162,10 @@ Se negar, a tela inicial explica o que falta; conceda em Configurações → App
 | "conexão caiu" | BLE perdido; volte à tela inicial e conecte de novo |
 | sinal abaixo de -85 dBm | celular longe do conector; aproxime |
 
+## Publicar na Google Play
+
+Chave de upload, bundle e textos da loja: ver [PLAY_STORE.md](PLAY_STORE.md).
+
 ## Pendências
 
 - Não testado no carro ainda: o protocolo é o mesmo do firmware validado, mas a camada

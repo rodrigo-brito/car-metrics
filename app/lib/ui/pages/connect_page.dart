@@ -266,7 +266,7 @@ class _ConnectPageState extends State<ConnectPage> {
     return [
       SizedBox(height: compact ? 0 : 12),
       Text(
-        compact ? 'computador de bordo' : 'computador\nde bordo',
+        compact ? 'Painel OBD2' : 'Painel\nOBD2',
         style: TextStyle(
           color: Palette.accent,
           fontSize: compact ? 28 : 36,
@@ -282,7 +282,7 @@ class _ConnectPageState extends State<ConnectPage> {
       ),
       const SizedBox(height: 12),
       const Text(
-        'Pajero TR4 · adaptador OBD (ELM327 por Bluetooth)',
+        'computador de bordo · adaptador ELM327 por Bluetooth',
         style: TextStyle(color: Palette.muted, fontSize: 14),
       ),
       SizedBox(height: compact ? 12 : 20),
