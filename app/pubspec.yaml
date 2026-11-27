@@ -1,7 +1,7 @@
 name: painel_tr4
 description: Painel OBD2, computador de bordo no celular, lendo o adaptador ELM327 (KONNWEI) por BLE.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.5.0
