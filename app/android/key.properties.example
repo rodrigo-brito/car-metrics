@@ -1,0 +1,6 @@
+# Copie para key.properties (ignorado pelo git) e preencha.
+# Guarde a chave FORA do repositório e faça backup: sem ela não dá para atualizar o app.
+storeFile=/Users/SEU_USUARIO/keys/android-upload.jks
+storePassword=SUA_SENHA
+keyAlias=upload
+keyPassword=SUA_SENHA
