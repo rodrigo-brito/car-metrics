@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../app/vehicle_controller.dart';
 import '../theme.dart';
 import '../widgets/alert_overlay.dart';
+import '../widgets/screen_scale.dart';
 import '../widgets/status_bar.dart';
 import 'diag_page.dart';
 import 'drive_page.dart';
@@ -52,64 +53,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
       child: Scaffold(
         body: SafeArea(
-          child: ListenableBuilder(
-            listenable: c,
-            builder: (context, _) {
-              final alert = c.alert;
-              final size = MediaQuery.sizeOf(context);
-              final landscape = size.width > size.height;
-              _setImmersive(landscape);
-              final status = StatusBar(
-                controller: c,
-                pageName: DashboardScreen.pageNames[c.page],
-                onDisconnect: () => Navigator.of(context).maybePop(),
-              );
-              final pages = PageView(
-                key: _pagesKey,
-                controller: _pc,
-                onPageChanged: c.goToPage,
-                children: [
-                  DrivePage(controller: c),
-                  EnginePage(controller: c),
-                  DiagPage(controller: c),
-                  const InclinePage(),
-                ],
-              );
-              final tabs = _PageTabs(
-                atTop: landscape,
-                names: DashboardScreen.pageNames,
-                current: c.page,
-                onTap: (i) => _pc.animateToPage(
-                  i,
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOut,
-                ),
-              );
-              return Stack(
-                children: [
-                  Column(
-                    children: [
-                      if (landscape)
-                        // paisagem: status e abas na mesma linha, para sobrar altura
-                        SizedBox(
-                          height: 44,
-                          child: Row(
-                            children: [
-                              Expanded(flex: 9, child: status),
-                              Expanded(flex: 11, child: tabs),
-                            ],
-                          ),
-                        )
-                      else
-                        status,
-                      Expanded(child: pages),
-                      if (!landscape) tabs,
-                    ],
+          // em tablet tudo é ampliado na mesma proporção, para aproveitar a tela
+          child: ScreenScale(
+            child: ListenableBuilder(
+              listenable: c,
+              builder: (context, _) {
+                final alert = c.alert;
+                final size = MediaQuery.sizeOf(context);
+                final landscape = size.width > size.height;
+                _setImmersive(landscape);
+                final status = StatusBar(
+                  controller: c,
+                  pageName: DashboardScreen.pageNames[c.page],
+                  onDisconnect: () => Navigator.of(context).maybePop(),
+                );
+                final pages = PageView(
+                  key: _pagesKey,
+                  controller: _pc,
+                  onPageChanged: c.goToPage,
+                  children: [
+                    DrivePage(controller: c),
+                    EnginePage(controller: c),
+                    DiagPage(controller: c),
+                    const InclinePage(),
+                  ],
+                );
+                final tabs = _PageTabs(
+                  atTop: landscape,
+                  names: DashboardScreen.pageNames,
+                  current: c.page,
+                  onTap: (i) => _pc.animateToPage(
+                    i,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut,
                   ),
-                  if (alert != null) Positioned.fill(child: AlertOverlay(alert: alert, onDismiss: c.dismissAlert)),
-                ],
-              );
-            },
+                );
+                return Stack(
+                  children: [
+                    Column(
+                      children: [
+                        if (landscape)
+                          // paisagem: status e abas na mesma linha, para sobrar altura
+                          SizedBox(
+                            height: 44,
+                            child: Row(
+                              children: [
+                                Expanded(flex: 9, child: status),
+                                Expanded(flex: 11, child: tabs),
+                              ],
+                            ),
+                          )
+                        else
+                          status,
+                        Expanded(child: pages),
+                        if (!landscape) tabs,
+                      ],
+                    ),
+                    if (alert != null) Positioned.fill(child: AlertOverlay(alert: alert, onDismiss: c.dismissAlert)),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
