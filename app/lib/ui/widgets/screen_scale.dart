@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 /// Amplia o conteúdo em telas grandes (tablets) na mesma proporção, para os indicadores
@@ -11,19 +13,24 @@ class ScreenScale extends StatelessWidget {
     super.key,
     required this.child,
     this.referenceShortSide = 400,
+    this.referenceLongSide = 700,
     this.maxFactor = 2.4,
   });
   final Widget child;
   final double referenceShortSide;
+  final double referenceLongSide;
   final double maxFactor;
 
   /// Fator de ampliação para uma área de [size] dp.
   static double factorFor(
     Size size, {
     double referenceShortSide = 400,
+    double referenceLongSide = 700,
     double maxFactor = 2.4,
   }) {
-    final f = size.shortestSide / referenceShortSide;
+    // o lado maior também limita: numa janela quase quadrada (tela dividida) ampliar só
+    // pelo lado menor deixaria a área útil apertada demais
+    final f = min(size.shortestSide / referenceShortSide, size.longestSide / referenceLongSide);
     return f < 1 ? 1 : (f > maxFactor ? maxFactor : f);
   }
 
@@ -35,6 +42,7 @@ class ScreenScale extends StatelessWidget {
         final s = factorFor(
           box.biggest,
           referenceShortSide: referenceShortSide,
+          referenceLongSide: referenceLongSide,
           maxFactor: maxFactor,
         );
         if (s <= 1.05) return child;

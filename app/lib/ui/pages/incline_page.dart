@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../config.dart';
 import '../../incline/incline_controller.dart';
 import '../theme.dart';
+import '../widgets/one_line.dart';
 
 Color levelColor(InclineLevel l) => switch (l) {
       InclineLevel.ok => Palette.ok,
@@ -103,7 +104,7 @@ class _InclinePageState extends State<InclinePage> {
             child: FilledButton.icon(
               onPressed: inc == null ? null : _calibrate,
               icon: const Icon(Icons.straighten),
-              label: const Text('Zerar no plano'),
+              label: const OneLine('Zerar no plano'),
             ),
           ),
           const SizedBox(width: 8),
@@ -111,7 +112,7 @@ class _InclinePageState extends State<InclinePage> {
             child: OutlinedButton.icon(
               onPressed: _c.resetMax,
               icon: const Icon(Icons.restart_alt),
-              label: const Text('Zerar máximos'),
+              label: const OneLine('Zerar máximos'),
             ),
           ),
         ],
@@ -188,9 +189,10 @@ class _Dial extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                OneLine(
                   title,
-                  style: const TextStyle(color: Palette.muted, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1),
+                  style: const TextStyle(
+                      color: Palette.muted, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1),
                 ),
                 FittedBox(
                   fit: BoxFit.scaleDown,
@@ -199,7 +201,7 @@ class _Dial extends StatelessWidget {
                     style: TextStyle(color: color, fontSize: 52, fontWeight: FontWeight.w700, height: 1.1),
                   ),
                 ),
-                Text(direction, style: TextStyle(color: color, fontSize: 14)),
+                OneLine(direction, style: TextStyle(color: color, fontSize: 14)),
                 const SizedBox(height: 6),
                 Text(maxText, style: const TextStyle(color: Palette.muted, fontSize: 11)),
               ],
