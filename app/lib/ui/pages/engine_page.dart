@@ -44,16 +44,6 @@ class EnginePage extends StatelessWidget {
             ),
           ],
         ),
-        const Divider(color: Palette.line),
-        TrimRow(label: 'trim curto', pct: d.stftPct),
-        TrimRow(label: 'trim longo', pct: d.ltftPct),
-        const Padding(
-          padding: EdgeInsets.only(top: 4),
-          child: Text(
-            'Num flex, o trim longo andando para o positivo depois de abastecer indica etanol no tanque.',
-            style: TextStyle(color: Palette.muted, fontSize: 12),
-          ),
-        ),
       ],
       right: [
         const Divider(color: Palette.line),
@@ -75,6 +65,16 @@ class EnginePage extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         O2Sparkline(history: controller.o2History, index: controller.o2Index),
+        const Divider(color: Palette.line),
+        TrimRow(label: 'trim curto', pct: d.stftPct),
+        TrimRow(label: 'trim longo', pct: d.ltftPct),
+        const Padding(
+          padding: EdgeInsets.only(top: 4),
+          child: Text(
+            'Num flex, o trim longo andando para o positivo depois de abastecer indica etanol no tanque.',
+            style: TextStyle(color: Palette.muted, fontSize: 12),
+          ),
+        ),
       ],
     );
   }

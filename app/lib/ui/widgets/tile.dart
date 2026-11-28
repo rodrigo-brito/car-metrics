@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../format.dart';
 import '../theme.dart';
 import 'bars.dart';
+import 'one_line.dart';
 
 /// Card de valor da página "dirigir": filete colorido à esquerda, rótulo, valor + unidade
 /// e barra opcional embaixo.
@@ -62,53 +63,55 @@ class ValueTile extends StatelessWidget {
         children: [
           Container(width: 4, color: accent),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(color: Palette.muted, fontSize: small),
-                  ),
-                  const Spacer(),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          value,
-                          style: TextStyle(
-                            color: Palette.txt,
-                            fontSize: big,
-                            fontWeight: FontWeight.w700,
-                            height: 1,
-                          ),
+            // card muito baixo (janela pequena, fonte grande): reduz o conteúdo em vez de estourar
+            child: MinHeightFit(
+              minHeight: 72,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    OneLine(label, style: TextStyle(color: Palette.muted, fontSize: small)),
+                    // o número ocupa o meio do card e encolhe se faltar largura ou altura
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              value,
+                              style: TextStyle(
+                                color: Palette.txt,
+                                fontSize: big,
+                                fontWeight: FontWeight.w700,
+                                height: 1,
+                              ),
+                            ),
+                            SizedBox(width: small * 0.3),
+                            Text(
+                              unit,
+                              style: TextStyle(
+                                color: Palette.muted,
+                                fontSize: small,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: small * 0.3),
-                        Text(
-                          unit,
-                          style: TextStyle(
-                            color: Palette.muted,
-                            fontSize: small,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  if (barPct != null) ...[
-                    const SizedBox(height: 6),
-                    HBar(
-                      pct: barPct,
-                      color: accent,
-                      height: (h * 0.05).clamp(5.0, 8.0),
-                    ),
+                    if (barPct != null) ...[
+                      const SizedBox(height: 6),
+                      HBar(
+                        pct: barPct,
+                        color: accent,
+                        height: (h * 0.05).clamp(5.0, 8.0),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -162,14 +165,9 @@ class LoadCard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: const TextStyle(color: Palette.muted, fontSize: 13),
-            ),
-            Text(
-              '${fmt(p, 0)}%',
-              style: const TextStyle(color: Palette.txt, fontSize: 14),
-            ),
+            Flexible(child: OneLine(label, style: const TextStyle(color: Palette.muted, fontSize: 13))),
+            const SizedBox(width: 8),
+            Text('${fmt(p, 0)}%', maxLines: 1, style: const TextStyle(color: Palette.txt, fontSize: 14)),
           ],
         ),
         const SizedBox(height: 4),

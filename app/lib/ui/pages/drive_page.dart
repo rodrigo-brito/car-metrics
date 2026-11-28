@@ -8,6 +8,7 @@ import '../../data/vehicle_data.dart';
 import '../format.dart';
 import '../theme.dart';
 import '../widgets/gauge.dart';
+import '../widgets/one_line.dart';
 import '../widgets/tile.dart';
 
 /// Página 1, dirigir: velocímetro com arco de rpm, consumo instantâneo e médio,
@@ -83,63 +84,86 @@ class DrivePage extends StatelessWidget {
                   : Palette.ok,
     );
 
-    final details = <Widget>[
-      Row(children: [Expanded(child: consumo), const SizedBox(width: 8), Expanded(child: media)]),
-      const SizedBox(height: 8),
-      Row(children: [Expanded(child: motor), const SizedBox(width: 8), Expanded(child: bateria)]),
-      const SizedBox(height: 8),
-      LoadCard(loadPct: d.loadPct, throttlePct: d.throttlePct),
-      const SizedBox(height: 12),
-      const Divider(color: Palette.line, height: 1),
-      const SizedBox(height: 8),
-      _TripFooter(fuelLph: d.fuelLph, trip: controller.trip),
-    ];
+    final load = LoadCard(loadPct: d.loadPct, throttlePct: d.throttlePct);
+    final footer = _TripFooter(fuelLph: d.fuelLph, trip: controller.trip);
+    Widget pair(Widget a, Widget b) => Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [Expanded(child: a), const SizedBox(width: 8), Expanded(child: b)],
+          ),
+        );
+    // os quatro cards dividem a altura que sobrar, em qualquer orientação
+    Widget cards({double gap = 6}) => Column(
+          children: [
+            pair(consumo.withHeight(null), media.withHeight(null)),
+            SizedBox(height: gap),
+            pair(motor.withHeight(null), bateria.withHeight(null)),
+          ],
+        );
 
     return LayoutBuilder(
       builder: (context, box) {
-        if (box.maxWidth > box.maxHeight) {
-          // horizontal, sem rolagem: velocímetro na altura toda à esquerda; à direita os
-          // cards dividem a altura que sobra depois de carga/borboleta e do rodapé
-          final gaugeSize = min(box.maxHeight - 12, box.maxWidth * 0.42);
-          Widget pair(Widget a, Widget b) => Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [Expanded(child: a), const SizedBox(width: 8), Expanded(child: b)],
-                ),
-              );
-          return Row(
-            children: [
-              SizedBox(
-                width: gaugeSize + 16,
-                child: Center(child: SpeedGauge(speedKmh: d.speedKmh, rpm: d.rpm, size: gaugeSize)),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 6, 12, 6),
-                  child: Column(
-                    children: [
-                      pair(consumo.withHeight(null), media.withHeight(null)),
-                      const SizedBox(height: 6),
-                      pair(motor.withHeight(null), bateria.withHeight(null)),
-                      const SizedBox(height: 6),
-                      LoadCard(loadPct: d.loadPct, throttlePct: d.throttlePct),
-                      const SizedBox(height: 6),
-                      _TripFooter(fuelLph: d.fuelLph, trip: controller.trip),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+        // janelas muito largas e baixas (tela dividida na horizontal) também ficam lado a lado
+        if (box.maxWidth > box.maxHeight * 1.05) {
+          // horizontal, sem rolagem: velocímetro à esquerda; à direita os cards dividem a
+          // altura que sobra depois de carga/borboleta e do rodapé
+          return MinHeightFit(
+            minHeight: 300,
+            child: LayoutBuilder(
+              builder: (context, box) {
+                final gaugeSize = min(box.maxHeight - 12, box.maxWidth * 0.42);
+                return Row(
+                  children: [
+                    SizedBox(
+                      width: gaugeSize + 16,
+                      child: Center(child: SpeedGauge(speedKmh: d.speedKmh, rpm: d.rpm, size: gaugeSize)),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 6, 12, 6),
+                        child: Column(
+                          children: [
+                            Expanded(child: cards()),
+                            const SizedBox(height: 6),
+                            load,
+                            const SizedBox(height: 6),
+                            footer,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           );
         }
-        final gaugeSize = min(box.maxWidth - 48, 300.0);
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-          children: [
-            Center(child: SpeedGauge(speedKmh: d.speedKmh, rpm: d.rpm, size: gaugeSize)),
-            const SizedBox(height: 12),
-            ...details,
-          ],
+        // vertical (ou quase quadrado), sem rolagem: velocímetro em cima, cards embaixo
+        return MinHeightFit(
+          minHeight: 420,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+            child: Column(
+              children: [
+                Expanded(
+                  flex: 11,
+                  child: LayoutBuilder(
+                    builder: (context, g) => Center(
+                      child: SpeedGauge(speedKmh: d.speedKmh, rpm: d.rpm, size: min(g.maxWidth, g.maxHeight)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(flex: 9, child: cards(gap: 8)),
+                const SizedBox(height: 8),
+                load,
+                const SizedBox(height: 10),
+                const Divider(color: Palette.line, height: 1),
+                const SizedBox(height: 8),
+                footer,
+              ],
+            ),
+          ),
         );
       },
     );
@@ -166,8 +190,11 @@ class _TripFooter extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(it.$1, style: const TextStyle(color: Palette.muted, fontSize: 11)),
-                Text(it.$2, style: const TextStyle(color: Palette.txt, fontSize: 15)),
+                OneLine(it.$1, style: const TextStyle(color: Palette.muted, fontSize: 11)),
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: OneLine(it.$2, style: const TextStyle(color: Palette.txt, fontSize: 15)),
+                ),
               ],
             ),
           ),

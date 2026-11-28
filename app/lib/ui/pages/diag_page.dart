@@ -5,6 +5,7 @@ import '../../data/vehicle_data.dart';
 import '../format.dart';
 import '../theme.dart';
 import '../widgets/bars.dart';
+import '../widgets/one_line.dart';
 import '../widgets/two_column.dart';
 
 /// Página 3, diagnóstico: luz de injeção, falhas, códigos (modo 03), apagar com
@@ -53,29 +54,34 @@ class DiagPage extends StatelessWidget {
                       ? Palette.warn
                       : Palette.bad,
         ),
-        InfoLine('erro', err.isEmpty ? '-' : err, color: err.isEmpty ? Palette.txt : Palette.bad),
+        InfoLine('erro', err.isEmpty ? '-' : err, color: err.isEmpty ? Palette.txt : Palette.bad, wrap: true),
       ],
       tail: [
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: src == null ? null : controller.requestDtcs,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Reler códigos'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(backgroundColor: Palette.bad, foregroundColor: Colors.black),
-                onPressed: src == null ? null : () => _confirmClear(context),
-                icon: const Icon(Icons.delete_forever),
-                label: const Text('Apagar falhas'),
-              ),
-            ),
-          ],
+        // lado a lado se houver largura; senão um embaixo do outro, com o texto inteiro
+        LayoutBuilder(
+          builder: (context, box) {
+            final reread = OutlinedButton.icon(
+              onPressed: src == null ? null : controller.requestDtcs,
+              icon: const Icon(Icons.refresh),
+              label: const OneLine('Reler códigos'),
+            );
+            final clear = FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: Palette.bad, foregroundColor: Colors.black),
+              onPressed: src == null ? null : () => _confirmClear(context),
+              icon: const Icon(Icons.delete_forever),
+              label: const OneLine('Apagar falhas'),
+            );
+            if (box.maxWidth < 300) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [reread, const SizedBox(height: 8), clear],
+              );
+            }
+            return Row(
+              children: [Expanded(child: reread), const SizedBox(width: 8), Expanded(child: clear)],
+            );
+          },
         ),
         const SizedBox(height: 8),
         const Text(
@@ -123,7 +129,7 @@ class _DtcChips extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(width: 108, child: Text('códigos', style: TextStyle(color: Palette.muted, fontSize: 14))),
+          const SizedBox(width: 108, child: OneLine('códigos', style: TextStyle(color: Palette.muted, fontSize: 14))),
           Expanded(
             child: Wrap(
               spacing: 6,

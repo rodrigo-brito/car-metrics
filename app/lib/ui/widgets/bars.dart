@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../format.dart';
 import '../theme.dart';
+import 'one_line.dart';
 
 double clampD(double v, double lo, double hi) => v < lo ? lo : (v > hi ? hi : v);
 
@@ -52,16 +53,21 @@ class BarRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+      child: _scaledRow(Row(
         children: [
-          SizedBox(width: 96, child: Text(label, style: const TextStyle(color: Palette.muted, fontSize: 14))),
+          _Fixed(96, child: OneLine(label, style: const TextStyle(color: Palette.muted, fontSize: 14))),
+          const SizedBox(width: 8),
           Expanded(child: HBar(pct: pct, color: color, height: 8)),
-          SizedBox(
-            width: 72,
-            child: Text(text, textAlign: TextAlign.end, style: const TextStyle(color: Palette.txt, fontSize: 14)),
+          _Fixed(
+            72,
+            child: OneLine(
+              text,
+              alignment: Alignment.centerRight,
+              style: const TextStyle(color: Palette.txt, fontSize: 14),
+            ),
           ),
         ],
-      ),
+      )),
     );
   }
 }
@@ -76,9 +82,10 @@ class TrimRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+      child: _scaledRow(Row(
         children: [
-          SizedBox(width: 96, child: Text(label, style: const TextStyle(color: Palette.muted, fontSize: 14))),
+          _Fixed(96, child: OneLine(label, style: const TextStyle(color: Palette.muted, fontSize: 14))),
+          const SizedBox(width: 8),
           Expanded(
             child: SizedBox(
               height: 14,
@@ -129,16 +136,16 @@ class TrimRow extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(
-            width: 72,
-            child: Text(
+          _Fixed(
+            72,
+            child: OneLine(
               '${fmtSigned(pct, 1)}%',
-              textAlign: TextAlign.end,
+              alignment: Alignment.centerRight,
               style: const TextStyle(color: Palette.txt, fontSize: 14),
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 }
@@ -153,19 +160,19 @@ class KeyValue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Text(k, style: const TextStyle(color: Palette.muted, fontSize: 14)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              v,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(top: 6, bottom: 6, right: 10),
+      // chave e valor encolhem juntos se não couberem, sem cortar nenhum dos dois
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(k, maxLines: 1, style: const TextStyle(color: Palette.muted, fontSize: 14)),
+            const SizedBox(width: 8),
+            Text(v, maxLines: 1, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
   }
@@ -173,10 +180,14 @@ class KeyValue extends StatelessWidget {
 
 /// Linha "chave | valor" da página de diagnóstico.
 class InfoLine extends StatelessWidget {
-  const InfoLine(this.k, this.v, {super.key, this.color = Palette.txt});
+  const InfoLine(this.k, this.v, {super.key, this.color = Palette.txt, this.wrap = false});
   final String k;
   final String v;
   final Color color;
+
+  /// true = o valor pode ocupar várias linhas (mensagens de erro); false = uma linha só,
+  /// encolhendo se faltar largura (VIN, protocolo).
+  final bool wrap;
 
   @override
   Widget build(BuildContext context) {
@@ -185,10 +196,38 @@ class InfoLine extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 108, child: Text(k, style: const TextStyle(color: Palette.muted, fontSize: 14))),
-          Expanded(child: Text(v, style: TextStyle(color: color, fontSize: 14))),
+          SizedBox(width: 108, child: OneLine(k, style: const TextStyle(color: Palette.muted, fontSize: 14))),
+          Expanded(
+            child: wrap
+                ? Text(v, style: TextStyle(color: color, fontSize: 14))
+                : OneLine(v, style: TextStyle(color: color, fontSize: 14)),
+          ),
         ],
       ),
     );
   }
 }
+
+/// Largura fixa do rótulo e do valor das linhas de barra, reduzida na mesma proporção
+/// quando a linha tem menos de 300 de largura, para a barra no meio nunca sumir.
+class _Fixed extends StatelessWidget {
+  const _Fixed(this.width, {required this.child});
+  final double width;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(width: width * _RowScale.of(context), child: child);
+}
+
+class _RowScale extends InheritedWidget {
+  const _RowScale({required this.k, required super.child});
+  final double k;
+  static double of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<_RowScale>()?.k ?? 1;
+  @override
+  bool updateShouldNotify(_RowScale old) => old.k != k;
+}
+
+/// Mede a largura da linha e repassa a redução para os [_Fixed] dentro dela.
+Widget _scaledRow(Widget row) => LayoutBuilder(
+      builder: (context, box) => _RowScale(k: box.maxWidth >= 300 ? 1 : box.maxWidth / 300, child: row),
+    );

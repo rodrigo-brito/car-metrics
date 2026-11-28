@@ -21,20 +21,24 @@ class SpeedGauge extends StatelessWidget {
       height: size,
       child: CustomPaint(
         painter: _GaugePainter(r),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              fmt(speedKmh, 0),
-              style: TextStyle(color: Palette.txt, fontSize: size * 0.28, fontWeight: FontWeight.w700, height: 1),
-            ),
-            Text('km/h', style: TextStyle(color: Palette.muted, fontSize: size * 0.07)),
-            SizedBox(height: size * 0.06),
-            Text(
-              '${fmt(rpm, 0)} rpm',
-              style: TextStyle(color: r > 5500 ? Palette.bad : Palette.txt, fontSize: size * 0.075),
-            ),
-          ],
+        // os textos já são proporcionais ao mostrador; a fonte do sistema não os aumenta,
+        // senão passariam do círculo
+        child: MediaQuery.withNoTextScaling(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                fmt(speedKmh, 0),
+                style: TextStyle(color: Palette.txt, fontSize: size * 0.28, fontWeight: FontWeight.w700, height: 1),
+              ),
+              Text('km/h', style: TextStyle(color: Palette.muted, fontSize: size * 0.07)),
+              SizedBox(height: size * 0.06),
+              Text(
+                '${fmt(rpm, 0)} rpm',
+                style: TextStyle(color: r > 5500 ? Palette.bad : Palette.txt, fontSize: size * 0.075),
+              ),
+            ],
+          ),
         ),
       ),
     );

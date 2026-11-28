@@ -10,6 +10,8 @@ import '../theme.dart';
 class StatusBar extends StatelessWidget {
   const StatusBar({super.key, required this.controller, required this.pageName, this.onDisconnect});
   final VehicleController controller;
+
+  /// Vazio em paisagem, onde a aba ativa já mostra o nome da página.
   final String pageName;
   final VoidCallback? onDisconnect;
 
@@ -48,7 +50,7 @@ class StatusBar extends StatelessWidget {
                     style: const TextStyle(color: Palette.txt, fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                   TextSpan(
-                    text: '   $stateText',
+                    text: pageName.isEmpty ? stateText : '   $stateText',
                     style: const TextStyle(color: Palette.muted, fontSize: 14),
                   ),
                 ],
@@ -58,7 +60,9 @@ class StatusBar extends StatelessWidget {
             ),
           ),
           // selo e tempo encolhem juntos se a barra ficar estreita (paisagem, com as abas ao lado)
+          // sem o nome da página (paisagem), selo e tempo têm prioridade sobre o estado
           Flexible(
+            flex: pageName.isEmpty ? 4 : 1,
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(
